@@ -43,6 +43,6 @@ https://raw.githubusercontent.com/mpiktas/covid19lt/master/data/lt-covid19-indiv
 Usage: 
 
 ```
-python dataDownlad.py
+python dataDownload.py
 ```
 
