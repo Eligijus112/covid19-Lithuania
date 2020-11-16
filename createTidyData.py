@@ -53,16 +53,19 @@ dPatient['is_treated'] = [1 if x == 'Gydomas' else 0 for x in dPatient['status']
 dPatient['is_nonsick'] = [1 if x == 'Nesirgo' else 0 for x in dPatient['status']]
 dPatient['is_noinfo'] = [1 if x == 'no_info' else 0 for x in dPatient['status']] 
 
+# Creating a concat column for gender and age 
+dPatient['sex_age'] = dPatient['age'] + dPatient['sex']
+
 # Saving the column names that we will be aggregating 
 agg_cols = [ 
     'is_cured', 
     'is_death', 
-    'is_other', 
+    #'is_other', 
     'is_treated', 
-    'is_nonsick', 
-    'is_noinfo', 
-    'is_imported',
-    'is_foreigner',
+    #'is_nonsick', 
+    #'is_noinfo', 
+    #'is_imported',
+    #'is_foreigner',
     'is_hospitalized'
     ]
 
@@ -92,23 +95,27 @@ def aggToDay(
     return d 
 
 # Aggregating to daily data 
-dAge = aggToDay('age', dPatient)
-dGender = aggToDay('sex', dPatient)
-dMunicipality = aggToDay('administrative_level_3', dPatient)
+dAge = aggToDay('sex_age', dPatient, agg_cols=agg_cols)
 
 # Calculating daily covid cases 
 dTotal = dPatient.groupby('day', as_index=False)['is_covid'].sum()
 
 # Merging all the data together 
 d = pd.merge(dTotal, dAge, how='left', on='day')
-d = pd.merge(d, dGender, how='left', on='day')
-d = pd.merge(d, dMunicipality, how='left', on='day')
 
 # Creating the column for weekday number 
 weekday = pd.Series([str(x.weekday() + 1) for x in d['day']])
 wkd = pd.get_dummies(weekday)
 wkd.columns = [f'weekday_{x}' for x in wkd.columns.values]
 d = pd.concat([d, wkd], axis=1)
+
+# Getting total daily test data 
+tests = dMunicipality.groupby('day', as_index=False)['tests_total'].sum()
+d = pd.merge(d, tests, how='left', on='day')
+d.fillna(0, inplace=True)
+
+# Creating a dummy variable for quarantine 
+d['is_quarantine'] = [1 if (((x >= datetime.date(2020, 3, 16)) & (x <= datetime.date(2020, 6, 16))) | (x >= datetime.date(2020, 10, 27))) else 0 for x in d['day']]
 
 # Saving the tidy data to the data folder 
 d.to_csv('data/tidy_data.csv', index=False)
