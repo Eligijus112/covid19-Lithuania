@@ -60,12 +60,12 @@ dPatient['sex_age'] = dPatient['age'] + dPatient['sex']
 agg_cols = [ 
     'is_cured', 
     'is_death', 
-    #'is_other', 
+    'is_other', 
     'is_treated', 
-    #'is_nonsick', 
-    #'is_noinfo', 
-    #'is_imported',
-    #'is_foreigner',
+    'is_nonsick', 
+    'is_noinfo', 
+    'is_imported',
+    'is_foreigner',
     'is_hospitalized'
     ]
 
