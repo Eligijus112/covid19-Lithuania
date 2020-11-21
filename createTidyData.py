@@ -28,6 +28,7 @@ newestDate = dataFolders[-1].strftime('%Y-%m-%d')
 # Reading the newest files
 dMunicipality = pd.read_csv(f'data/{newestDate}/municipality_data.csv')
 dPatient = pd.read_csv(f'data/{newestDate}/patient_data.csv')
+dUS = pd.read_csv(f'data/{newestDate}/US_data.csv')
 
 # Fixing some names in the sex column
 dPatient['sex'] = ['Moteris' if x == 'mot.' else x for x in dPatient['sex']]
@@ -66,7 +67,8 @@ agg_cols = [
     'is_noinfo', 
     'is_imported',
     'is_foreigner',
-    'is_hospitalized'
+    'is_hospitalized',
+    'is_covid'
     ]
 
 # Function to aggregate to the daily level by a given column
@@ -94,14 +96,23 @@ def aggToDay(
 
     return d 
 
+# High level daily stats 
+d = dPatient.groupby('day', as_index=False)[agg_cols].sum()
+
+# Getting covid cases by age group 
+#dByAge = aggToDay('age', dPatient, agg_cols=['is_covid'])
+
 # Aggregating to daily data 
-dAge = aggToDay('sex_age', dPatient, agg_cols=agg_cols)
+#dAge = aggToDay('sex_age', dPatient, agg_cols=agg_cols)
 
 # Calculating daily covid cases 
-dTotal = dPatient.groupby('day', as_index=False)['is_covid'].sum()
+#dTotal = dPatient.groupby('day', as_index=False)['is_hospitalized'].sum()
 
 # Merging all the data together 
-d = pd.merge(dTotal, dAge, how='left', on='day')
+#d = pd.merge(dTotal, dByAge, how='left', on='day')
+
+# Merging additional info 
+#d = pd.merge(dTotal, dInfo, how='left', on='day')
 
 # Creating the column for weekday number 
 weekday = pd.Series([str(x.weekday() + 1) for x in d['day']])
@@ -110,12 +121,29 @@ wkd.columns = [f'weekday_{x}' for x in wkd.columns.values]
 d = pd.concat([d, wkd], axis=1)
 
 # Getting total daily test data 
-tests = dMunicipality.groupby('day', as_index=False)['tests_total'].sum()
-d = pd.merge(d, tests, how='left', on='day')
-d.fillna(0, inplace=True)
+#tests = dMunicipality.groupby('day', as_index=False)['tests_total'].sum()
+#d = pd.merge(d, tests, how='left', on='day')
+#d.fillna(0, inplace=True)
 
 # Creating a dummy variable for quarantine 
 d['is_quarantine'] = [1 if (((x >= datetime.date(2020, 3, 16)) & (x <= datetime.date(2020, 6, 16))) | (x >= datetime.date(2020, 10, 27))) else 0 for x in d['day']]
 
+# Wrangling US cases and hospitalizations 
+dUS['day'] = [datetime.datetime.strptime(str(x), '%Y%m%d').date() for x in dUS['date']]
+dUS = dUS.drop('date', axis=1)
+dUS = dUS.rename(columns={'positiveIncrease': 'is_covid', 'hospitalizedCurrently': 'is_hospitalized'})
+
+#dUShospital = dUS[['day', 'state', 'is_hospitalized']].pivot_table(index='day', columns='state')
+#dUShospital.columns = ['_'.join(x).strip() for x in dUShospital.columns.values]
+
+#dUSCovid = dUS[['day', 'state', 'is_covid']].pivot_table(index='day', columns='state')
+#dUSCovid.columns = ['_'.join(x).strip() for x in dUSCovid.columns.values]
+
+#dUSfinal = pd.merge(dUShospital, dUSCovid, how='left', on='day')
+#dUSfinal.fillna(0, inplace=True)
+
+dUSfinal = dUS.groupby('day', as_index=False)[['is_hospitalized', 'is_covid']].sum()
+
 # Saving the tidy data to the data folder 
-d.to_csv('data/tidy_data.csv', index=False)
+d.to_csv('data/tidy_data_LT.csv', index=False)
+dUSfinal.to_csv('data/tidy_data_US.csv', index=False)

@@ -1,3 +1,5 @@
 .vscode/
 .ipynb_checkpoints/
 data/
+model.png
+__pycache__/
