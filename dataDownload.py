@@ -13,8 +13,18 @@ import gc
 # Track timing
 import time 
 
+# Request making for different APIS
+import requests
+
 # Saving the current data when the script was initiated 
 curDate = datetime.datetime.now().date()
+
+# Reading US data 
+start = time.time()
+USdata = requests.get('https://api.covidtracking.com/v1/states/daily.json')
+USdata = pd.DataFrame(USdata.json())[['date', 'state', 'positiveIncrease', 'hospitalizedCurrently']]
+print(f"Read US data in {round(time.time() - start, 2)} seconds")
+print(f"Rows read: {USdata.shape[0]}")
 
 # Reading the high level municipality data 
 start = time.time()
@@ -41,9 +51,10 @@ if not os.path.exists(curDateFolder):
 # Saving the results to two separate raw data files
 dMunicipality.to_csv(f"{curDateFolder}/municipality_data.csv", index=False)
 dPatient.to_csv(f"{curDateFolder}/patient_data.csv", index=False)
+USdata.to_csv(f"{curDateFolder}/US_data.csv", index=False)
 
 print(f"Data saved in {curDateFolder}")
 
 # Removing the objects from memory
-del dMunicipality, dPatient 
+del dMunicipality, dPatient, USdata 
 gc.collect()
