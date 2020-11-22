@@ -144,6 +144,25 @@ dUS = dUS.rename(columns={'positiveIncrease': 'is_covid', 'hospitalizedCurrently
 
 dUSfinal = dUS.groupby('day', as_index=False)[['is_hospitalized', 'is_covid']].sum()
 
+# Wrangling Estonia data 
+dESTcases = pd.read_csv('data_not_API/Estonia/covid_cases.csv', sep=';')
+dESThospital = pd.read_csv('data_not_API/Estonia/hospitalizations.csv')
+
+# Getting new daily cases in Estonia
+dESTcases = dESTcases[dESTcases['Measure Names']=='Number of cases per day']
+dESTcases.reset_index(inplace=True, drop=True)
+dESTcases['day'] = [datetime.datetime.strptime(x, '%d.%m.%Y').date() for x in dESTcases['ResultTime']]
+dESTcases = dESTcases.rename(columns={'Measure Values': 'is_covid'})
+
+# Hospitalization data 
+dESThospital['day'] = [datetime.datetime.strptime(x, '%d.%m.%Y').date() for x in dESThospital['Date']]
+dESThospital = dESThospital.rename(columns={'Hospitalized': 'is_hospitalized'})
+
+# Getting the final frame 
+dEST = pd.merge(dESTcases, dESThospital, on='day', how='right')
+dEST = dEST[['day', 'is_hospitalized', 'is_covid']]
+
 # Saving the tidy data to the data folder 
 d.to_csv('data/tidy_data_LT.csv', index=False)
 dUSfinal.to_csv('data/tidy_data_US.csv', index=False)
+dEST.to_csv('data/tidy_data_EST.csv', index=False)
